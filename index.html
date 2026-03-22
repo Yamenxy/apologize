@@ -14,7 +14,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    overflow-x: hidden;
     overflow-y: auto;
     color: white;
     padding: 20px;
@@ -23,48 +22,56 @@ body {
 .container {
     text-align: center;
     background: rgba(255,255,255,0.07);
-    padding: 30px;
+    padding: 25px;
     border-radius: 20px;
     backdrop-filter: blur(18px);
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     max-width: 520px;
     width: 100%;
-    z-index: 2;
 }
 
 h1 { font-size: 2em; margin-bottom: 15px; }
 
 #message {
     font-size: 1.1em;
-    line-height: 1.9;
-    min-height: 120px;
+    line-height: 2;
+    text-align: right;
+    white-space: pre-line; /* FIX TEXT SPACING */
+    margin-bottom: 20px;
+}
+
+/* BUTTON CONTAINER FIX */
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 button {
-    padding: 10px 20px;
+    padding: 12px;
     border: none;
     border-radius: 25px;
     font-size: 1em;
     cursor: pointer;
-    margin: 8px;
+    width: 100%;
 }
 
 #ok { background: #ff4d6d; color: white; }
-#ignore { background: #888; color: white; position: absolute; }
-#voiceBtn { background: #6c63ff; color: white; }
+#ok:hover { background: #e63950; }
 
-/* mobile fix */
-@media (max-width: 600px) {
-    h1 { font-size: 1.6em; }
-    #message { font-size: 1em; }
-    button { width: 100%; }
+#ignore {
+    background: #888;
+    color: white;
+    position: relative; /* FIX OVERLAP */
 }
+
+#voiceBtn { background: #6c63ff; color: white; }
 
 /* Hearts */
 .heart {
     position: fixed;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     background: #ff4d6d;
     transform: rotate(45deg);
     animation: float 6s linear infinite;
@@ -73,35 +80,36 @@ button {
 .heart::before,
 .heart::after {
     content: '';
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     background: #ff4d6d;
     border-radius: 50%;
     position: absolute;
 }
-.heart::before { top: -9px; left: 0; }
-.heart::after { left: -9px; top: 0; }
+.heart::before { top: -8px; }
+.heart::after { left: -8px; }
 @keyframes float {
-    0% { transform: translateY(100vh) rotate(45deg); opacity: 1; }
-    100% { transform: translateY(-10vh) rotate(45deg); opacity: 0; }
+    0% { transform: translateY(100vh) rotate(45deg); }
+    100% { transform: translateY(-10vh) rotate(45deg); }
 }
 
-/* voice message popup */
-#voiceMessage {
+/* voice popup */
+#voicePopup {
     position: fixed;
     bottom: 20px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(20px);
     background: rgba(0,0,0,0.8);
     padding: 10px 20px;
     border-radius: 20px;
     font-size: 0.9em;
     opacity: 0;
-    transition: 0.4s;
+    transition: 0.3s;
 }
 
-#voiceMessage.show {
+#voicePopup.show {
     opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 </style>
 </head>
@@ -111,13 +119,14 @@ button {
     <h1>آسف يا Boo 🤍</h1>
     <div id="message"></div>
 
-    <button id="ok">قبلت اسفك خلاص مش زعلانة</button>
-    <button id="ignore">لا</button>
-    <br>
-    <button id="voiceBtn">اسمع الرسالة</button>
+    <div class="buttons">
+        <button id="ok">قبلت اسفك خلاص مش زعلانة</button>
+        <button id="ignore">لا</button>
+        <button id="voiceBtn">اسمع الرسالة</button>
+    </div>
 </div>
 
-<div id="voiceMessage">اسف علي صوتي المعفن 😅</div>
+<div id="voicePopup">اسف علي صوتي المعفن </div>
 
 <audio id="bgMusic" loop preload="auto">
     <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3" type="audio/mpeg">
@@ -143,10 +152,8 @@ logAction("visit");
 
 function safePlay(audioEl) {
     if (!audioEl) return;
-    const playPromise = audioEl.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {});
-    }
+    const p = audioEl.play();
+    if (p) p.catch(()=>{});
 }
 
 let musicStarted = false;
@@ -157,7 +164,7 @@ window.addEventListener("click", () => {
     }
 });
 
-// typing
+// typing (FIX TEXT)
 const text = `يمكن الكلام مش كفاية…\n\nبس أنا فعلاً زعلان إني كنت سبب في مضايقتك.\n\nوجودك في حياتي حاجة أنا مقدرها جداً،\nومش حابب أبداً أكون شخص بيزعلك.\n\nالرسالة دي بس عشان أقولك إني آسف…`;
 
 let i = 0;
@@ -165,7 +172,7 @@ function typeWriter() {
     if (i < text.length) {
         const el = document.getElementById("message");
         if (el) {
-            el.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+            el.innerHTML += text.charAt(i);
         }
         i++;
         setTimeout(typeWriter, 40);
@@ -176,38 +183,67 @@ typeWriter();
 setTimeout(() => {
     const el = document.getElementById("message");
     if (el) {
-        el.innerHTML += "<br><br>انتي عمرك ما هتزعجيني...";
+        el.innerHTML += "\n\nانتي عمرك ما هتزعجيني ولا انا متخيل اني ممكن انزعج منك";
     }
     logAction("hidden_message_shown");
 }, 10000);
 
+// buttons
+const okBtn = document.getElementById("ok");
+const ignoreBtn = document.getElementById("ignore");
 const voiceBtn = document.getElementById("voiceBtn");
 const voiceNote = document.getElementById("voiceNote");
-const voiceMsg = document.getElementById("voiceMessage");
+const popup = document.getElementById("voicePopup");
+
+if (okBtn) {
+    okBtn.addEventListener("click", () => {
+        logAction("clicked_ok");
+        document.body.innerHTML = `
+        <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;flex-direction:column;color:white;">
+            <h1>شكراً إنك سمعتي انتي عندي بالدنيا و ما فيها</h1>
+            <p>كلميني بقي بليز 🙏</p>
+        </div>`;
+    });
+}
+
+if (ignoreBtn) {
+    ignoreBtn.addEventListener("click", () => {
+        logAction("clicked_ignore");
+    });
+
+    let ignoreCount = 0;
+    ignoreBtn.addEventListener("mouseover", () => {
+        ignoreCount++;
+        logAction("hover_ignore_" + ignoreCount);
+
+        const x = Math.random() * window.innerWidth * 0.8;
+        const y = Math.random() * window.innerHeight * 0.8;
+        ignoreBtn.style.position = "absolute";
+        ignoreBtn.style.left = x + "px";
+        ignoreBtn.style.top = y + "px";
+    });
+}
 
 if (voiceBtn) {
     voiceBtn.addEventListener("click", () => {
         safePlay(voiceNote);
         logAction("voice_played");
 
-        // show message
-        voiceMsg.classList.add("show");
-        setTimeout(() => {
-            voiceMsg.classList.remove("show");
-        }, 3000);
+        popup.classList.add("show");
+        //setTimeout(() => popup.classList.remove("show"), 3000);
     });
 }
 
 // hearts
-function createHeart() {
-    const heart = document.createElement("div");
-    heart.classList.add("heart");
-    heart.style.left = Math.random() * 100 + "vw";
-    heart.style.animationDuration = (Math.random() * 3 + 3) + "s";
-    document.body.appendChild(heart);
-    setTimeout(() => heart.remove(), 6000);
-}
-setInterval(createHeart, 300);
+setInterval(() => {
+    const h = document.createElement("div");
+    h.className = "heart";
+    h.style.left = Math.random() * 100 + "vw";
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 6000);
+}, 300);
+
+window.addEventListener("click", () => logAction("click_anywhere"));
 </script>
 
 </body>
