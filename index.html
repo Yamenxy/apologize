@@ -10,43 +10,57 @@ body {
     margin: 0;
     font-family: 'Cairo', sans-serif;
     background: linear-gradient(135deg, #0f172a, #3a0ca3);
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    align-items: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
     color: white;
+    padding: 20px;
 }
+
 .container {
     text-align: center;
     background: rgba(255,255,255,0.07);
-    padding: 50px;
-    border-radius: 25px;
+    padding: 30px;
+    border-radius: 20px;
     backdrop-filter: blur(18px);
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     max-width: 520px;
+    width: 100%;
     z-index: 2;
 }
-h1 { font-size: 2.6em; margin-bottom: 20px; }
+
+h1 { font-size: 2em; margin-bottom: 15px; }
+
 #message {
-    font-size: 1.2em;
-    line-height: 2;
-    min-height: 140px;
-}
-button {
-    padding: 12px 25px;
-    border: none;
-    border-radius: 30px;
     font-size: 1.1em;
-    cursor: pointer;
-    margin: 10px;
-    transition: 0.3s;
+    line-height: 1.9;
+    min-height: 120px;
 }
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    margin: 8px;
+}
+
 #ok { background: #ff4d6d; color: white; }
-#ok:hover { background: #e63950; }
 #ignore { background: #888; color: white; position: absolute; }
 #voiceBtn { background: #6c63ff; color: white; }
 
+/* mobile fix */
+@media (max-width: 600px) {
+    h1 { font-size: 1.6em; }
+    #message { font-size: 1em; }
+    button { width: 100%; }
+}
+
+/* Hearts */
 .heart {
     position: fixed;
     width: 18px;
@@ -71,6 +85,24 @@ button {
     0% { transform: translateY(100vh) rotate(45deg); opacity: 1; }
     100% { transform: translateY(-10vh) rotate(45deg); opacity: 0; }
 }
+
+/* voice message popup */
+#voiceMessage {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    opacity: 0;
+    transition: 0.4s;
+}
+
+#voiceMessage.show {
+    opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -85,12 +117,14 @@ button {
     <button id="voiceBtn">اسمع الرسالة</button>
 </div>
 
+<div id="voiceMessage">اسف علي صوتي المعفن 😅</div>
+
 <audio id="bgMusic" loop preload="auto">
     <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="voiceNote" preload="auto">
-    <source src="WhatsApp Ptt 2026-03-22 at 1.48.18 PM.ogg" type="audio/mpeg">
+    <source src="WhatsApp Ptt 2026-03-22 at 1.48.18 PM.ogg" type="audio/ogg">
 </audio>
 
 <script>
@@ -102,38 +136,29 @@ function logAction(action) {
             method: "POST",
             body: JSON.stringify({ action: action, time: new Date().toISOString() })
         });
-    } catch (e) {
-        console.log("Logging failed", e);
-    }
+    } catch (e) {}
 }
 
 logAction("visit");
 
-// SAFE audio play helper
-function safePlay(audioEl, label) {
-    if (!audioEl) {
-        console.warn(label + " not found");
-        return;
-    }
+function safePlay(audioEl) {
+    if (!audioEl) return;
     const playPromise = audioEl.play();
     if (playPromise !== undefined) {
-        playPromise.catch(err => {
-            console.warn("Autoplay prevented:", err);
-        });
+        playPromise.catch(() => {});
     }
 }
 
-// start music after first interaction (only once)
 let musicStarted = false;
 window.addEventListener("click", () => {
     if (!musicStarted) {
-        safePlay(document.getElementById("bgMusic"), "bgMusic");
+        safePlay(document.getElementById("bgMusic"));
         musicStarted = true;
     }
 });
 
-// typing effect
-const text = `يمكن الكلام مش كفاية…\n\nبس أنا فعلاً زعلان إني كنت سبب في مضايقتك.\n\nوجودك في حياتي حاجة أنا مقدرها جداً，\nومش حابب أبداً أكون شخص بيزعلك.\n\nالرسالة دي بس عشان أقولك إني آسف…\ `;
+// typing
+const text = `يمكن الكلام مش كفاية…\n\nبس أنا فعلاً زعلان إني كنت سبب في مضايقتك.\n\nوجودك في حياتي حاجة أنا مقدرها جداً،\nومش حابب أبداً أكون شخص بيزعلك.\n\nالرسالة دي بس عشان أقولك إني آسف…`;
 
 let i = 0;
 function typeWriter() {
@@ -148,59 +173,28 @@ function typeWriter() {
 }
 typeWriter();
 
-// hidden message
 setTimeout(() => {
     const el = document.getElementById("message");
     if (el) {
-        el.innerHTML += "<br><br>انتي عمرك ما هتزعجيني ولا انا متخيل اني ممكن انزعج منك انتي مهمة جدا في حياتي و انتي عارفة حاجة زي دي ";
+        el.innerHTML += "<br><br>انتي عمرك ما هتزعجيني...";
     }
     logAction("hidden_message_shown");
 }, 10000);
 
-// buttons
-const okBtn = document.getElementById("ok");
-const ignoreBtn = document.getElementById("ignore");
 const voiceBtn = document.getElementById("voiceBtn");
-
-if (okBtn) {
-    okBtn.addEventListener("click", () => {
-        logAction("clicked_ok");
-        document.body.innerHTML = `
-        <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;flex-direction:column;color:white;">
-            <h1>شكراً إنك سمعتي انتي عندي بالدنيا و ما فيها</h1>
-            <p> كلميني بقي بليز العيد خلص و انا بحاول اصالح فيكي هي غلطتي يعني بس انتي قلبك كبير بقي يا بو</p>
-        </div>`;
-    });
-}
-
-if (ignoreBtn) {
-    ignoreBtn.addEventListener("click", () => {
-        logAction("clicked_ignore");
-    });
-
-    let ignoreCount = 0;
-    ignoreBtn.addEventListener("mouseover", () => {
-        ignoreCount++;
-        logAction("hover_ignore_" + ignoreCount);
-
-        const x = Math.random() * window.innerWidth * 0.8;
-        const y = Math.random() * window.innerHeight * 0.8;
-        ignoreBtn.style.left = x + "px";
-        ignoreBtn.style.top = y + "px";
-
-        if (ignoreCount > 5) {
-            const el = document.getElementById("message");
-            if (el) {
-                el.innerHTML += "<br><br>طيب حتى تجاهلها صعب 😅";
-            }
-        }
-    });
-}
+const voiceNote = document.getElementById("voiceNote");
+const voiceMsg = document.getElementById("voiceMessage");
 
 if (voiceBtn) {
     voiceBtn.addEventListener("click", () => {
-        safePlay(document.getElementById("voiceNote"), "voiceNote");
+        safePlay(voiceNote);
         logAction("voice_played");
+
+        // show message
+        voiceMsg.classList.add("show");
+        setTimeout(() => {
+            voiceMsg.classList.remove("show");
+        }, 3000);
     });
 }
 
@@ -214,8 +208,6 @@ function createHeart() {
     setTimeout(() => heart.remove(), 6000);
 }
 setInterval(createHeart, 300);
-
-window.addEventListener("click", () => logAction("click_anywhere"));
 </script>
 
 </body>
