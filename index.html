@@ -209,7 +209,14 @@ if (okBtn) {
 if (ignoreBtn) {
     let ignoreCount = 0;
 
+    let lastActionAt = 0;
+
     function moveIgnore(e) {
+        const now = Date.now();
+        // avoid too-frequent moves
+        if (now - lastActionAt < 200) return;
+        lastActionAt = now;
+
         ignoreCount++;
         logAction("hover_ignore_" + ignoreCount);
 
@@ -221,17 +228,24 @@ if (ignoreBtn) {
         ignoreBtn.style.zIndex = 9999;
     }
 
-    ignoreBtn.addEventListener("mouseover", moveIgnore);
-    ignoreBtn.addEventListener("pointerenter", moveIgnore);
-
-    // On touch devices move on touchstart and prevent the touch from generating clicks
-    ignoreBtn.addEventListener("touchstart", function(e) {
-        e.preventDefault();
+    // Use pointerdown to handle both mouse and touch without duplicate mouse events
+    ignoreBtn.addEventListener("pointerdown", function(e) {
+        // only handle primary pointers
+        if (e.isPrimary === false) return;
+        if (e.pointerType === 'touch') e.preventDefault();
         moveIgnore(e);
     }, { passive: false });
 
-    // Prevent the ignore button's click from propagating to elements beneath it
+    // Debounced click handler: ignore duplicate clicks (common on mobile)
+    let lastClickAt = 0;
     ignoreBtn.addEventListener("click", function(e) {
+        const now = Date.now();
+        if (now - lastClickAt < 600) {
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+        lastClickAt = now;
         e.stopPropagation();
         e.preventDefault();
         logAction("clicked_ignore");
