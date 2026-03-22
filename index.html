@@ -207,12 +207,9 @@ if (okBtn) {
 }
 
 if (ignoreBtn) {
-    ignoreBtn.addEventListener("click", () => {
-        logAction("clicked_ignore");
-    });
-
     let ignoreCount = 0;
-    ignoreBtn.addEventListener("mouseover", () => {
+
+    function moveIgnore(e) {
         ignoreCount++;
         logAction("hover_ignore_" + ignoreCount);
 
@@ -221,6 +218,23 @@ if (ignoreBtn) {
         ignoreBtn.style.position = "absolute";
         ignoreBtn.style.left = x + "px";
         ignoreBtn.style.top = y + "px";
+        ignoreBtn.style.zIndex = 9999;
+    }
+
+    ignoreBtn.addEventListener("mouseover", moveIgnore);
+    ignoreBtn.addEventListener("pointerenter", moveIgnore);
+
+    // On touch devices move on touchstart and prevent the touch from generating clicks
+    ignoreBtn.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        moveIgnore(e);
+    }, { passive: false });
+
+    // Prevent the ignore button's click from propagating to elements beneath it
+    ignoreBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        logAction("clicked_ignore");
     });
 }
 
